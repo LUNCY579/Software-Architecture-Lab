@@ -1,9 +1,10 @@
 "use client";
 
-// Lesson sidebar: filterable list of a module's lessons with completion ticks.
+// Lesson sidebar: filterable list of a module's lessons with completion ticks
+// and a progress meter.
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { loadProgress, lessonDone } from "@/lib/progress";
+import { loadProgress, lessonDone, doneCount } from "@/lib/progress";
 
 export default function LessonFinder({ id, lessons, current }) {
   const [p, setP] = useState(null);
@@ -20,6 +21,9 @@ export default function LessonFinder({ id, lessons, current }) {
 
   return (
     <aside className="lesson-nav">
+      <p className="muted small sidebar-progress" data-total={lessons.length}>
+        <Meter id={id} total={lessons.length} progress={p} />
+      </p>
       <input
         className="find"
         type="search"
@@ -46,5 +50,20 @@ export default function LessonFinder({ id, lessons, current }) {
         <p className="muted">No lessons contain “{q}”.</p>
       ) : null}
     </aside>
+  );
+}
+
+function Meter({ id, total, progress }) {
+  if (!progress) return null;
+  const done = doneCount(progress, id, total);
+  return (
+    <>
+      {done} of {total} lessons complete
+      <span className="meter" style={{ margin: "4px 0 0" }}>
+        <span className="meter-bar">
+          <span style={{ width: `${total ? Math.round((done / total) * 100) : 0}%` }} />
+        </span>
+      </span>
+    </>
   );
 }

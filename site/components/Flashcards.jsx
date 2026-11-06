@@ -29,7 +29,7 @@ export default function Flashcards() {
   useEffect(() => {
     setCats(["all", ...[...new Set(glossary.map(catOf))].sort((a, b) => a.localeCompare(b))]);
     const cards = loadCards();
-    setState({ cards, cat: "all", practiceAll: false, queue: [], current: null, revealed: false });
+    setState({ cards, cat: "all", practiceAll: false, queue: [], current: null, revealed: false, session: { answered: 0, again: 0, good: 0, easy: 0 } });
   }, []);
 
   useEffect(() => {
@@ -73,8 +73,10 @@ export default function Flashcards() {
       rec.due = Date.now() + INTERVALS[rec.box];
       cards[s.current.term] = rec;
       persist(cards);
+      const key = ["again", "good", "easy"][kind];
+      const session = { ...s.session, answered: s.session.answered + 1, [key]: s.session[key] + 1 };
       const queue = s.queue.slice(1);
-      return { ...s, cards, queue, current: queue[0] || null, revealed: false };
+      return { ...s, cards, queue, current: queue[0] || null, revealed: false, session };
     });
   }
 
@@ -119,6 +121,7 @@ export default function Flashcards() {
       </section>
       <p className="result-count cards-status">
         {inDeck.length} cards in this deck · {due} due · {mastered} well known
+        {state.session.answered ? ` · this session: ${state.session.answered} reviewed (${state.session.again} again / ${state.session.good} good / ${state.session.easy} easy)` : ""}
       </p>
       <div className="card-stage">
         {!g ? (

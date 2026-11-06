@@ -5,8 +5,9 @@ import Quiz from "@/components/Quiz";
 import TermEnhancer from "@/components/TermEnhancer";
 import LessonFinder from "@/components/LessonFinder";
 import LessonFooter from "@/components/LessonFooter";
+import LessonKeys from "@/components/LessonKeys";
 import ReadProgress from "@/components/ReadProgress";
-import { docs, docById, getModule, figures } from "@/lib/data";
+import { docs, docById, getModule, figures, relatedTutorials } from "@/lib/data";
 
 export function generateStaticParams() {
   const out = [];
@@ -38,6 +39,10 @@ export default function LessonPage({ params }) {
   const pos = docs.findIndex((x) => x.id === d.id);
   const prevMod = pos > 0 ? docs[pos - 1] : null;
   const nextMod = pos > -1 && pos < docs.length - 1 ? docs[pos + 1] : null;
+  const prevHref = idx > 0 ? `/modules/${d.id}/${idx - 1}` : null;
+  const nextHref = idx < total - 1 ? `/modules/${d.id}/${idx + 1}` : null;
+  const isLast = idx === total - 1;
+  const tuts = relatedTutorials(d.id);
 
   return (
     <>
@@ -53,11 +58,33 @@ export default function LessonPage({ params }) {
             <Blocks blocks={lesson.blocks} />
           </TermEnhancer>
           <Quiz questions={lesson.quiz} store={{ type: "module", id: d.id, idx }} />
-          <LessonFooter id={d.id} idx={idx} prev={idx > 0 ? idx - 1 : null} next={idx < total - 1 ? idx + 1 : null} />
+          <LessonFooter id={d.id} idx={idx} prev={prevHref} next={nextHref} />
+          {isLast ? (
+            <aside className="callout key" style={{ marginTop: 20 }}>
+              <p className="callout-title">You have reached the end of this module</p>
+              {tuts.length ? (
+                <p>
+                  Practise what you read: {tuts.map((t, i) => (
+                    <span key={t.id}>
+                      {i ? " · " : ""}
+                      <Link href={`/tutorials/${t.id}`}>{t.title}</Link>
+                    </span>
+                  ))}
+                  .
+                </p>
+              ) : null}
+              {nextMod ? (
+                <p>
+                  Or continue with the next module: <Link href={`/modules/${nextMod.id}`}>{nextMod.title}</Link>.
+                </p>
+              ) : null}
+            </aside>
+          ) : null}
           <nav className="module-nav">
             {prevMod ? <Link className="module-nav-link prev" href={`/modules/${prevMod.id}`}>← {prevMod.title}</Link> : <span />}
             {nextMod ? <Link className="module-nav-link next" href={`/modules/${nextMod.id}`}>{nextMod.title} →</Link> : <span />}
           </nav>
+          <LessonKeys prev={prevHref} next={nextHref} />
           {figs.length ? (
             <p className="muted small" style={{ marginTop: 18 }}>
               This module also includes {figs.length} extracted figures on its{" "}
