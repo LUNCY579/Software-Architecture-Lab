@@ -1,0 +1,29 @@
+# ============================================================
+# Whitelist ignore: everything is ignored by default, then the
+# documents and code are explicitly kept. PDFs are never tracked.
+# ============================================================
+
+# Ignore every file and directory, at any depth
+*
+!*/
+
+# ---- keep documents -----------------------------------------
+!*.md
+!*.txt
+
+# ---- keep code ----------------------------------------------
+!*.js
+!*.css
+!*.html
+!*.py
+
+# ---- never ignore these housekeeping files ------------------
+!.gitignore
+
+# ---- generated outputs (regenerate: node build-textbooks.js) -
+textbooks/
+
+# ---- working/scratch folders, even their whitelisted files ---
+.audit-work/
+.freebuff/
+__pycache__/

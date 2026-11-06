@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Accuracy &amp; Completeness Audit — Learning Modules</title>
+<link rel="stylesheet" href="audit.css" />
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <p class="eyebrow">Source audit · 6 November 2026</p>
+    <h1>Accuracy &amp; Completeness Audit</h1>
+    <p class="dek">The 40 learning modules and the <code>data.js</code> digest, checked line by line against the 40 source PDFs.</p>
+    <p class="meta" id="meta"></p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="kpis" id="kpis" aria-label="Headline figures"></section>
+
+  <section class="panel" aria-labelledby="verdict-h">
+    <h2 id="verdict-h">Overall verdict</h2>
+    <p class="lead" id="overallVerdict"></p>
+    <div class="scorecard" id="scorecard"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="cross-h">
+    <h2 id="cross-h">Cross-cutting findings</h2>
+    <p class="section-dek">Problems that recur across the library. Each is measured, not impressionistic.</p>
+    <div class="findings" id="cross"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="fix-h">
+    <h2 id="fix-h">Corrections</h2>
+    <p class="section-dek">Specific edits, ordered by priority. P1 items are factual errors; P3 items are structural.</p>
+    <div class="fixes" id="fixes"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="modules-h">
+    <div class="section-head">
+      <div>
+        <h2 id="modules-h">Module-by-module</h2>
+        <p class="section-dek">Forty modules. Expand a card for verified claims, errors, missing content and quiz state.</p>
+      </div>
+      <div class="legend" aria-label="Grade legend">
+        <span><b class="g a">A</b> accurate</span>
+        <span><b class="g b">B</b> minor issues</span>
+        <span><b class="g c">C</b> needs correction</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <label class="search">
+        <span class="visually-hidden">Search modules</span>
+        <input id="q" type="search" placeholder="Search title, module id, verdict or finding…" />
+      </label>
+      <label>
+        <span class="visually-hidden">Filter by track</span>
+        <select id="track"></select>
+      </label>
+      <label>
+        <span class="visually-hidden">Filter by digest grade</span>
+        <select id="grade"></select>
+      </label>
+      <label>
+        <span class="visually-hidden">Filter by module grade</span>
+        <select id="mgrade"></select>
+      </label>
+      <p class="count" id="count" aria-live="polite"></p>
+    </div>
+
+    <div class="grid" id="grid"></div>
+    <p class="empty" id="empty" hidden>No modules match those filters.</p>
+  </section>
+
+  <section class="panel method" aria-labelledby="method-h">
+    <h2 id="method-h">Method and limits</h2>
+    <div class="method-cols">
+      <div>
+        <h3>What was measured</h3>
+        <ul>
+          <li>Word ratio: module words ÷ extracted PDF words. A ratio near 1.0 means a full copy.</li>
+          <li>Verbatim score: share of 7-word shingles in a module block that also occur in its PDF.</li>
+          <li>Coverage: word-weighted share of PDF paragraphs represented in the module.</li>
+          <li>Claim checks: every proper noun and number in the digest searched in the source, then read in context.</li>
+          <li>Quiz checks: answer present in the PDF, answer visible in the stem, duplicate options, matching source sentence.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>What it cannot prove</h3>
+        <ul>
+          <li>Figures were not OCR'd. The audit shows that a figure is missing from the site, not whether its caption is accurate.</li>
+          <li>Paraphrase was judged by reading the nearest source passages; subtle changes of emphasis can survive that.</li>
+          <li>PDFs are treated as the authority. Where a PDF is itself a secondary source, the audit checks consistency with it, not independent truth.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="footnote">Text extracted with <code>pdftotext -enc UTF-8</code>. The full narrative, with all per-module detail, is in <code>AUDIT-REPORT.md</code>.</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>Audit of the Architecture &amp; Backend Learning Modules · 40 modules · 40 PDFs · 393 quiz questions.</p>
+  </div>
+</footer>
+
+<script src="audit-data.js"></script>
+<script>
+(function () {
+  "use strict";
+  var D = window.AUDIT_DATA;
+  if (!D) return;
+
+  var GRADE_LABEL = { A: "Accurate", B: "Minor issues", C: "Needs correction" };
+  var MGRADE_LABEL = { A: "Clean", B: "Usable but incomplete", C: "Structurally broken" };
+  var TRACK_LABEL = { architecture: "Architecture", gaming: "Gaming Backend", sql: "SQL & Databases", web: "Web & Tools" };
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null) n.textContent = text;
+    return n;
+  }
+  function fmt(n) { return Number(n).toLocaleString("en-US"); }
+
+  // masthead meta
+  document.getElementById("meta").textContent =
+    D.meta.modules + " modules · " + D.meta.pages + " PDF pages · " +
+    fmt(D.meta.pdfWords) + " source words · " + fmt(D.meta.questions) + " quiz questions";
+
+  // KPI cards
+  var kpis = document.getElementById("kpis");
+  [
+    { v: D.meta.moduleWords ? (D.meta.moduleWords / D.meta.pdfWords).toFixed(2) : "1.00", l: "module words per source word", note: "near 1.0 = full-text copy" },
+    { v: D.meta.modules, l: "modules audited", note: "40 PDFs mapped, no orphans" },
+    { v: D.meta.answerInStem, l: "quiz answers visible in the stem", note: "of " + D.meta.questions + " questions (" + Math.round(D.meta.answerInStem / D.meta.questions * 100) + "%)" },
+    { v: D.meta.images, l: "figures extracted", note: "0 displayed anywhere on the site" },
+    { v: D.meta.grades.C, l: "digests needing correction", note: D.meta.grades.B + " more with minor issues" }
+  ].forEach(function (k) {
+    var c = el("article", "kpi");
+    c.appendChild(el("p", "kpi-v", String(k.v)));
+    c.appendChild(el("p", "kpi-l", k.l));
+    c.appendChild(el("p", "kpi-n", k.note));
+    kpis.appendChild(c);
+  });
+
+  document.getElementById("overallVerdict").textContent =
+    "The prose is faithful and the digests are mostly accurate, but the library is not yet a course. " +
+    "Module bodies reproduce 98% of the source word count, so they read as transcripts rather than lessons. " +
+    "All " + D.meta.images + " extracted diagrams are unused, " + D.meta.artefacts + " navigation or table fragments are rendered as content, " +
+    "and " + D.meta.answerInStem + " of " + D.meta.questions + " quiz questions give away their answer. " +
+    "Five digests contain a factual error that needs correction (four graded C, plus s-large); the other thirty-five need at most a small edit.";
+
+  // scorecard
+  var sc = document.getElementById("scorecard");
+  [
+    ["Source mapping", "40 / 40 PDFs mapped", "pass"],
+    ["Catalog consistency", "0 mismatches", "pass"],
+    ["Digest accuracy", D.meta.grades.A + " accurate · " + D.meta.grades.B + " minor · " + D.meta.grades.C + " needs correction", "mixed"],
+    ["Prose coverage", "~98% of source words present", "pass"],
+    ["Figure coverage", "0 of " + D.meta.images + " displayed", "fail"],
+    ["Lesson structure", D.meta.genericTitles + " generic titles · 9 modules with no headings", "fail"],
+    ["Quiz validity", D.meta.answerInStem + " answer leaks · " + D.meta.navDerived + " navigation-derived · " + D.meta.lessonsWithoutQuiz + " lessons unassessed", "fail"],
+    ["Copyright posture", "Near-verbatim copies", "risk"]
+  ].forEach(function (row) {
+    var r = el("div", "score-row " + row[2]);
+    r.appendChild(el("span", "score-name", row[0]));
+    r.appendChild(el("span", "score-val", row[1]));
+    sc.appendChild(r);
+  });
+
+  // cross-cutting findings
+  var cross = document.getElementById("cross");
+  D.crossCutting.forEach(function (f, i) {
+    var card = el("article", "finding " + f.severity);
+    var head = el("div", "finding-head");
+    head.appendChild(el("span", "sev", f.severity));
+    head.appendChild(el("h3", null, f.title));
+    card.appendChild(head);
+    card.appendChild(el("p", null, f.text));
+    card.appendChild(el("p", "evidence", "Evidence: " + f.evidence));
+    cross.appendChild(card);
+  });
+
+  // corrections
+  var fixes = document.getElementById("fixes");
+  var byPriority = { P1: [], P2: [], P3: [] };
+  D.corrections.forEach(function (c) { (byPriority[c.priority] || byPriority.P3).push(c); });
+  ["P1", "P2", "P3"].forEach(function (p) {
+    var group = el("div", "fix-group");
+    group.appendChild(el("h3", null, p + (p === "P1" ? " · factual" : p === "P2" ? " · accuracy and completeness" : " · structural")));
+    byPriority[p].forEach(function (c) {
+      var row = el("div", "fix");
+      row.appendChild(el("code", "fix-id", c.id));
+      var body = el("div");
+      body.appendChild(el("p", null, c.issue));
+      body.appendChild(el("p", "fix-action", "Fix: " + c.fix));
+      row.appendChild(body);
+      group.appendChild(row);
+    });
+    fixes.appendChild(group);
+  });
+
+  // filters
+  var tracks = Array.from(new Set(D.modules.map(function (m) { return m.track; })));
+  var trackSel = document.getElementById("track");
+  trackSel.appendChild(new Option("All tracks", "all"));
+  tracks.forEach(function (t) { trackSel.appendChild(new Option(TRACK_LABEL[t] || t, t)); });
+
+  var gradeSel = document.getElementById("grade");
+  gradeSel.appendChild(new Option("All digest grades", "all"));
+  ["A", "B", "C"].forEach(function (g) { gradeSel.appendChild(new Option(g + " — " + GRADE_LABEL[g], g)); });
+
+  var mgradeSel = document.getElementById("mgrade");
+  mgradeSel.appendChild(new Option("All module grades", "all"));
+  ["A", "B", "C"].forEach(function (g) { mgradeSel.appendChild(new Option(g + " — " + MGRADE_LABEL[g], g)); });
+
+  var grid = document.getElementById("grid");
+  var empty = document.getElementById("empty");
+  var count = document.getElementById("count");
+  var q = document.getElementById("q");
+
+  function list(items, cls) {
+    var ul = el("ul", cls);
+    items.forEach(function (t) { ul.appendChild(el("li", null, t)); });
+    return ul;
+  }
+
+  function card(m) {
+    var c = el("article", "mod");
+    var head = el("header", "mod-head");
+    var top = el("div", "mod-top");
+    top.appendChild(el("span", "mod-id", m.id));
+    top.appendChild(el("span", "pill track", TRACK_LABEL[m.track] || m.track));
+    top.appendChild(el("span", "g " + m.digestGrade.toLowerCase(), m.digestGrade));
+    top.appendChild(el("span", "g " + m.moduleGrade.toLowerCase(), m.moduleGrade));
+    head.appendChild(top);
+    head.appendChild(el("h3", null, m.title));
+    head.appendChild(el("p", "mod-verdict", m.verdict));
+    c.appendChild(head);
+
+    var stats = el("dl", "mod-stats");
+    [
+      ["Words", fmt(m.moduleWords) + " / " + fmt(m.pdfWords)],
+      ["Lessons", String(m.lessons)],
+      ["Quiz", String(m.questions)],
+      ["Figures", m.images + " / 0"],
+      ["Artefacts", String(m.artefacts)]
+    ].forEach(function (pair) {
+      var d = el("div");
+      d.appendChild(el("dt", null, pair[0]));
+      d.appendChild(el("dd", null, pair[1]));
+      stats.appendChild(d);
+    });
+    c.appendChild(stats);
+
+    var det = el("details");
+    det.appendChild(el("summary", null, "Full findings"));
+
+    det.appendChild(el("h4", null, "Verified against the source"));
+    det.appendChild(list(m.verified, "ok"));
+
+    det.appendChild(el("h4", null, "Errors and risks"));
+    det.appendChild(list(m.issues, "bad"));
+
+    det.appendChild(el("h4", null, "Missing or degraded"));
+    det.appendChild(list(m.missing, "miss"));
+
+    var qp = el("p", "quiz-note");
+    qp.appendChild(el("strong", null, "Quiz: "));
+    qp.appendChild(document.createTextNode(m.quizNote));
+    det.appendChild(qp);
+
+    c.appendChild(det);
+    return c;
+  }
+
+  function render() {
+    var term = q.value.trim().toLowerCase();
+    var t = trackSel.value, g = gradeSel.value, mg = mgradeSel.value;
+    var shown = D.modules.filter(function (m) {
+      if (t !== "all" && m.track !== t) return false;
+      if (g !== "all" && m.digestGrade !== g) return false;
+      if (mg !== "all" && m.moduleGrade !== mg) return false;
+      if (!term) return true;
+      var hay = [m.id, m.title, m.verdict, m.verified.join(" "), m.issues.join(" "), m.missing.join(" ")].join(" ").toLowerCase();
+      return term.split(/\s+/).every(function (w) { return hay.indexOf(w) !== -1; });
+    });
+    grid.textContent = "";
+    shown.forEach(function (m) { grid.appendChild(card(m)); });
+    empty.hidden = shown.length > 0;
+    count.textContent = shown.length + " of " + D.modules.length + " modules";
+  }
+
+  [q, trackSel, gradeSel, mgradeSel].forEach(function (node) {
+    node.addEventListener("input", render);
+    node.addEventListener("change", render);
+  });
+  render();
+})();
+</script>
+</body>
+</html>
