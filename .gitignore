@@ -13,6 +13,9 @@
 
 # ---- keep code ----------------------------------------------
 !*.js
+!*.jsx
+!*.mjs
+!*.json
 !*.css
 !*.html
 !*.py
@@ -22,6 +25,11 @@
 
 # ---- generated outputs (regenerate: node build-textbooks.js) -
 textbooks/
+
+# ---- Next.js app artifacts ---------------------------------
+site/node_modules/
+site/.next/
+site/next-env.d.ts
 
 # ---- working/scratch folders, even their whitelisted files ---
 .audit-work/

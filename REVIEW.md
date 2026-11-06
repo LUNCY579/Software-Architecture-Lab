@@ -128,3 +128,35 @@ Built on the sections above; content and code are unchanged except where noted.
 - `README.md` — index.
 
 Chapters carry provenance (source PDF, level, reading time, objectives) and every quiz question ships with its answer and, for authored questions, the explanation. Figure images resolve via the relative `modules/media/` paths, so the books stay inside the project folder. The copyright note from §2.2 applies to the reference chapters: private study, not public redistribution.
+
+## 7. Next.js upgrade
+
+The learning interface is now a **Next.js 14 (App Router) app** in `site/`, fully statically generated: **254 pages** at build time, including all **188 lesson pages** as individual URLs (`/modules/<id>/<lesson>`).
+
+| Area | Before (vanilla SPA) | Now (Next.js) |
+| --- | --- | --- |
+| Routing | hash-based, one page | real URLs, 254 static pages, per-lesson deep links |
+| Rendering | all client-side | server-rendered content (lessons, tutorials, figures, glossary data in the HTML) + small client islands for progress |
+| Data | `window.*` globals, runtime script loads | build-time JSON (`npm run export-data` regenerates `site/data/`) |
+| SEO/metadata | static title | per-page `generateMetadata` for every module, lesson, tutorial, path |
+| Content parity | — | everything from the vanilla app carried over: paths, tutorials, modules, lessons, quizzes with answers & retakes, figures + lightbox, glossary tooltips, flashcards, quick find, theme, progress (same localStorage key — existing progress carries over) |
+
+**Run it:** `cd site && npm install && npm run dev` (or `npm run build && npm start`). Content changes: edit the vanilla data files, then `npm run export-data` and rebuild.
+
+### Review of displayed module content (§7 audit)
+- 40 modules / 188 lessons / 433 answered questions (393 auto-generated still lack written explanations; the 40 authored ones have them).
+- 238 figures all display; 7 modules have none (their sources are text-only): decoding-ms, hyperautomation, g-tools, g-network, g-patterns, s-backups, w-piskel.
+- 16 modules remain thin (≤2 lessons); 3 are single-lesson stubs (s-payments, s-tips, s-modernization). Splitting/merging is still the top content task.
+- Every module page now shows: objectives, level, time, prerequisites, related tutorials, provenance + word/question counts, figures, full lesson list with quiz counts, and prev/next navigation.
+
+## 8. Improvement pass
+
+1. **All 393 auto-generated quizzes upgraded** (was: answers only, unrelated distractors):
+   - **392/393 questions now carry an explanation** that quotes the exact source sentence containing the answer.
+   - **385/393 got rebuilt distractors** — same-lesson words with matching capitalisation and ±2-character length, so options are plausible same-part-of-speech candidates instead of random words.
+   - The upgrade lives in `site/scripts/export-data.mjs`, which rewrites `modules/*.js` (vanilla app), `site/data/*.json` (Next.js app) — one pipeline, everywhere in sync.
+   - The Markdown textbooks were regenerated, so all 392 explanations appear there too.
+2. **Full-text lesson search** — the search page now indexes every lesson body (188 lessons), returning excerpts with links to the exact lesson URL.
+3. **Cross-linked modules** — every module page gains "Related modules" (shared tags) and "Key terms" chips (glossary terms taught in it).
+4. **Lesson reading time** — every lesson shows a words/200 wpm estimate in its header.
+5. Re-verified: `npm run build` ✓ 254/254 static pages; every route smoke-tested; vanilla `modules/*.js` still parse; textbook counts updated (433 answers, 392 with explanations).
